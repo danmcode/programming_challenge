@@ -26,7 +26,7 @@ class Application:
     def get_challenge(self) -> Dict[str, Any]:
         try:
             print("Obteniendo el texto del reto...")
-            instructions = "Devuélveme la interpretación en formato JSON. Quiero que indiques qué entidades buscar, en qué API y qué operaciones realizar. El formato debe ser así:\n{\n  'entities': [\n    {'name': 'Leia Organa', 'attribute': 'height', 'source': 'swapi'},\n    {'name': 'Bulbasaur', 'attribute': 'height', 'source': 'pokeapi'},\n    {'name': 'Owen Lars', 'attribute': 'height', 'source': 'swapi'},\n    {'name': 'Socorro', 'attribute': 'diameter', 'source': 'swapi'}\n  ],\n  'operation': '(Leia.height * Bulbasaur.height * Owen.height) + Socorro.diameter'\n}\nResponde solo con el JSON."
+            instructions = "Devuélveme la interpretación en formato JSON. Quiero que indiques qué entidades buscar, en qué API, entre la API de pokemon(https://pokeapi.co/) y la API de StarWars (https://swapi.dev/) y qué operaciones realizar. El formato debe ser así:\n{\n  'entities': [\n    {'name': 'Leia Organa', 'attribute': 'height', 'source': 'swapi'},\n    {'name': 'Bulbasaur', 'attribute': 'height', 'source': 'pokeapi'},\n    {'name': 'Owen Lars', 'attribute': 'height', 'source': 'swapi'},\n    {'name': 'Socorro', 'attribute': 'diameter', 'source': 'swapi'}\n  ],\n  'operation': '(Leia.height * Bulbasaur.height * Owen.height) + Socorro.diameter'\n}\nResponde solo con el JSON."
             challenge_text = """En el remoto planeta de Saleucami, conocido por sus vastos desiertos y su población única, un Accelgor, el ágil Pokémon de tipo bicho, decide embarcarse en una aventura matemática. Intrigado por la magnitud de la población del planeta, Accelgor se pregunta qué resultado obtendría al multiplicar su propio peso por la cantidad de habitantes de Saleucami. ¿Qué revelará este cálculo intergaláctico sobre la relación entre el peso de un Pokémon y la vida en un planeta lejano?"""
             
             data = {
@@ -55,18 +55,21 @@ class Application:
             pokemon : Pokemon = {};
             
             for entity in interpretation.entities:
-                print(f"Nombre: {entity.name}")
-                print(f"Atributo: {entity.attribute}")
-                print(f"Fuente (API): {entity.source}")
                 
                 if entity.source == "pokeapi":
-                    print("👉 Consultar la PokéAPI")
+                    print("\n👉 Consultar la PokéAPI\n")
+                    print(f"Nombre: {entity.name}")
+                    print(f"Atributo: {entity.attribute}")
+                    print(f"Fuente (API): {entity.source}")
                     pokemon = self.pokemon_service.get_pokemon(entity.name)
                     print(pokemon)
                 elif entity.source == "swapi":
-                    print("👉 Consultar la SWAPI")
+                    print("\n👉 Consultar la SWAPI\n")
+                    print(f"Nombre: {entity.name}")
+                    print(f"Atributo: {entity.attribute}")
+                    print(f"Fuente (API): {entity.source}")
                 else:
-                    print("👉 Consultar la SWAPI")
+                    print("👉 API no registrada")
             
             
             return parsed_message
