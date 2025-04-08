@@ -30,7 +30,7 @@ class Application:
         try:
             print("Obteniendo el texto del reto...")
             instructions = "Devuélveme la interpretación en formato JSON. Quiero que indiques qué entidades buscar, en qué API, entre la API de pokemon(https://pokeapi.co/) y la API de StarWars (https://swapi.dev/) y qué operaciones realizar. El formato debe ser así:\n{\n  'entities': [\n    {'name': 'Leia Organa', 'attribute': 'height', 'source': 'swapi'},\n    {'name': 'Bulbasaur', 'attribute': 'height', 'source': 'pokeapi'},\n    {'name': 'Owen Lars', 'attribute': 'height', 'source': 'swapi'},\n    {'name': 'Socorro', 'attribute': 'diameter', 'source': 'swapi'}\n  ],\n  'operation': '(Leia.height * Bulbasaur.height * Owen.height) + Socorro.diameter'\n}\nResponde solo con el JSON."
-            challenge_text = """En el remoto planeta de Saleucami, conocido por sus vastos desiertos y su población única, un Accelgor, el ágil Pokémon de tipo bicho, decide embarcarse en una aventura matemática. Intrigado por la magnitud de la población del planeta, Accelgor se pregunta qué resultado obtendría al multiplicar su propio peso por la cantidad de habitantes de Saleucami. ¿Qué revelará este cálculo intergaláctico sobre la relación entre el peso de un Pokémon y la vida en un planeta lejano?"""
+            challenge_text = """En el misterioso planeta de Utapau, Ki-Adi-Mundi, el sabio Maestro Jedi, se encuentra con un enigma cósmico. Primero, decide multiplicar su propia altura con la base de experiencia de un Luxio, un Pokémon eléctrico lleno de energía. Con este resultado en mente, Ki-Adi-Mundi se embarca en un viaje matemático dividiendo el producto obtenido entre el periodo orbital del planeta Utapau. Pero la aventura no termina ahí, pues decide multiplicar el resultado por el periodo orbital del planeta Iktotch. ¿Qué revelará este cálculo intergaláctico en la búsqueda de sabiduría del Maestro Jedi?"""
             
             data = {
                 "model": "gpt-4o-mini",
@@ -56,8 +56,7 @@ class Application:
             
             "Obtener el pokemón"
             pokemon : Pokemon = {};
-            star_wars_model: StarWarsPlanet | StarWarsCharacter = {};
-            
+                
             eval_context = {}
             
             for entity in interpretation.entities:
@@ -81,7 +80,7 @@ class Application:
             safe_operation = to_dict_syntax(interpretation.operation)
             
             print("👉 Evaluando operación:", safe_operation)
-            result = eval(safe_operation, {}, eval_context)
+            result = evaluate_operation(interpretation.operation, eval_context)
             print(f"\n✅ Resultado final: {result}")
             
             return parsed_message
@@ -91,8 +90,18 @@ class Application:
             raise
 
 def to_dict_syntax(op_str):
-    return re.sub(r"(\w+)\.(\w+)", r"\1['\2']", op_str)
-
+    pattern = r'([A-Za-z0-9\- ]+)\.([A-Za-z0-9_]+)'
+    
+    def replacement(match):
+        entity_name = match.group(1).strip()
+        attribute = match.group(2)
+        
+        safe_name = entity_name.replace('-', '_minus_').replace(' ', '_space_')
+        
+        return f"_context['{entity_name}']['{attribute}']"
+    
+    return re.sub(pattern, replacement, op_str)
+    
 def swapi_entity_type(entity: Entity) -> str:
     """Determina el tipo de entidad para la API de Star Wars."""
     planet_attributes = {"population", "diameter", "surface_water", "rotation_period", "orbital_period"}
@@ -104,7 +113,11 @@ def swapi_entity_type(entity: Entity) -> str:
         return "people"
     else:
         raise ValueError(f"No se pudo determinar el tipo de entidad SWAPI para el atributo '{entity.attribute}'")
-    
+
+def evaluate_operation(operation, context):
+    _context = context
+    return eval(to_dict_syntax(operation), {"_context": _context}, {})
+
 def main():
     """Función principal de entrada."""
     try:
