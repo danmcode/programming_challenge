@@ -24,3 +24,16 @@ class ChallengeService:
         logger.info(f"***RESPUESTA DEL ENDPONT DEL RETO***: {reponse}\n\n")
         challenge = Challenge(**reponse)
         return challenge
+    
+    def send_result(self, result: float, challenge_id):
+        "Envía el resultado al endpoint de la API"
+        
+        data = {
+            "problem_id": challenge_id,
+            "answer": result
+        }
+        logger.info(f"***DATA ENVIADA***\n: {data}\n\n")
+        response = '';
+        # response = self.client.post(settings.SOLUTION_ENDPOINT, data)
+        # logger.info(f"***RESPUESTA DEL ENDPONT DEL RESULTADO***\n: {response}\n\n")
+        return response

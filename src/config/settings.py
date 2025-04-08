@@ -10,6 +10,7 @@ class Settings:
     TEST_ENDPOINT= os.getenv("TEST_ENDPOINT")
     AI_ENDPOINT= os.getenv("AI_ENDPOINT")
     PROD_ENDPOINT= os.getenv("PROD_ENDPOINT")
+    SOLUTION_ENDPOINT= os.getenv("SOLUTION_ENDPOINT")
 
     POKE_API= os.getenv("POKE_API")
     SWAPI= os.getenv("SWAPI")
