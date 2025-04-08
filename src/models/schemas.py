@@ -5,16 +5,16 @@ from datetime import datetime
 class StarWarsPlanet(BaseModel):
     """Modelo para datos de planetas de Star Wars."""
     name: str
-    rotation_period: int
-    orbital_period: int
-    diameter: int
-    surface_water: int
-    population: int
+    rotation_period: str
+    orbital_period: str
+    diameter: str
+    surface_water: str
+    population: str
 
 class StarWarsCharacter(BaseModel):
     name: str
-    height: int
-    mass: int
+    height: str
+    mass: str
     homeworld: str
     
 class Pokemon(BaseModel):

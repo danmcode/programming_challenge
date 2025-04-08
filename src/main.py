@@ -4,8 +4,10 @@ from typing import Dict, Any, List
 from src.services.challenge_service import ChallengeService
 from src.services.model_service import ModelService
 from src.services.pokemon_service import PokemonService
-from src.models.schemas import Interpretation, Pokemon, Entity
+from src.services.swapi_service import SwapiService
+from src.models.schemas import Interpretation, Pokemon, Entity, StarWarsPlanet, StarWarsCharacter
 import json
+import re
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,6 +24,7 @@ class Application:
         self.challenge_service = ChallengeService()
         self.model_service = ModelService()
         self.pokemon_service = PokemonService()
+        self.swapi_service = SwapiService()  # Inicializar el servicio de SWAPI si es necesario
     
     def get_challenge(self) -> Dict[str, Any]:
         try:
@@ -53,24 +56,33 @@ class Application:
             
             "Obtener el pokemón"
             pokemon : Pokemon = {};
+            star_wars_model: StarWarsPlanet | StarWarsCharacter = {};
+            
+            eval_context = {}
             
             for entity in interpretation.entities:
-                
                 if entity.source == "pokeapi":
-                    print("\n👉 Consultar la PokéAPI\n")
-                    print(f"Nombre: {entity.name}")
-                    print(f"Atributo: {entity.attribute}")
-                    print(f"Fuente (API): {entity.source}")
                     pokemon = self.pokemon_service.get_pokemon(entity.name)
-                    print(pokemon)
+                    value = getattr(pokemon, entity.attribute)
+                    eval_context.setdefault(entity.name, {})[entity.attribute] = value
+
                 elif entity.source == "swapi":
-                    print("\n👉 Consultar la SWAPI\n")
-                    print(f"Nombre: {entity.name}")
-                    print(f"Atributo: {entity.attribute}")
-                    print(f"Fuente (API): {entity.source}")
-                else:
-                    print("👉 API no registrada")
+                    entity_type = swapi_entity_type(entity)
+                    sw_model = self.swapi_service.get_swapi_data(entity_type, entity)
+                    value_str = getattr(sw_model, entity.attribute)
+                    
+                    if value_str == "unknown":
+                        raise ValueError(f"Atributo desconocido: {entity.attribute}")
+                    
+                    value = float(value_str.replace(",", ""))
+                    eval_context.setdefault(entity.name, {})[entity.attribute] = value
             
+            # Aquí puedes realizar operaciones con los datos obtenidos
+            safe_operation = to_dict_syntax(interpretation.operation)
+            
+            print("👉 Evaluando operación:", safe_operation)
+            result = eval(safe_operation, {}, eval_context)
+            print(f"\n✅ Resultado final: {result}")
             
             return parsed_message
             
@@ -78,6 +90,21 @@ class Application:
             logger.error(f"Error al procesar la solicitud: {e}")
             raise
 
+def to_dict_syntax(op_str):
+    return re.sub(r"(\w+)\.(\w+)", r"\1['\2']", op_str)
+
+def swapi_entity_type(entity: Entity) -> str:
+    """Determina el tipo de entidad para la API de Star Wars."""
+    planet_attributes = {"population", "diameter", "surface_water", "rotation_period", "orbital_period"}
+    character_attributes = {"height", "mass", "homeworld"}
+    
+    if entity.attribute in planet_attributes:
+        return "planets"
+    elif entity.attribute in character_attributes:
+        return "people"
+    else:
+        raise ValueError(f"No se pudo determinar el tipo de entidad SWAPI para el atributo '{entity.attribute}'")
+    
 def main():
     """Función principal de entrada."""
     try:
