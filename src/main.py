@@ -1,62 +1,42 @@
 import logging
 import sys
 from typing import Dict, Any, List
+from src.helpers.evaluate_operation import evaluate_operation
+from src.helpers.swapi_entity_type import swapi_entity_type
+from src.helpers.to_dict_syntax import to_dict_syntax
 from src.services.challenge_service import ChallengeService
 from src.services.model_service import ModelService
 from src.services.pokemon_service import PokemonService
 from src.services.swapi_service import SwapiService
-from src.models.schemas import Interpretation, Pokemon, Entity, StarWarsPlanet, StarWarsCharacter
+from src.models.schemas import Interpretation, Pokemon
+from src.config.logger import get_logger
 import json
-import re
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class Application:
     def __init__(self):
         self.challenge_service = ChallengeService()
         self.model_service = ModelService()
         self.pokemon_service = PokemonService()
-        self.swapi_service = SwapiService()  # Inicializar el servicio de SWAPI si es necesario
+        self.swapi_service = SwapiService()
     
     def get_challenge(self) -> Dict[str, Any]:
         try:
-            print("Obteniendo el texto del reto...")
-            instructions = "Devuélveme la interpretación en formato JSON. Quiero que indiques qué entidades buscar, en qué API, entre la API de pokemon(https://pokeapi.co/) y la API de StarWars (https://swapi.dev/) y qué operaciones realizar. El formato debe ser así:\n{\n  'entities': [\n    {'name': 'Leia Organa', 'attribute': 'height', 'source': 'swapi'},\n    {'name': 'Bulbasaur', 'attribute': 'height', 'source': 'pokeapi'},\n    {'name': 'Owen Lars', 'attribute': 'height', 'source': 'swapi'},\n    {'name': 'Socorro', 'attribute': 'diameter', 'source': 'swapi'}\n  ],\n  'operation': '(Leia.height * Bulbasaur.height * Owen.height) + Socorro.diameter'\n}\nResponde solo con el JSON."
+            logger.info("Obteniendo el texto del reto...\n")
+            #TODO: Cambiar por el endpoint de la API
             challenge_text = """En el bullicioso planeta-ciudad de Coruscant, donde las naves surcan los cielos entre rascacielos infinitos, un Wurmple curioso decide embarcarse en una aventura matemática. Primero, suma su propio peso al periodo orbital del planeta Coruscant, intrigado por la relación entre su diminuto ser y el vasto universo. Sin embargo, la aventura no termina ahí. Kit Fisto, el valiente Maestro Jedi, se une al desafío multiplicando su masa con el peso de un Magikarp. Finalmente, Wurmple resta este producto del resultado anterior. ¿Qué revelará este cálculo intergaláctico en la unión de dos mundos tan diferentes?"""
+            logger.info(f"Texto del reto: {challenge_text}\n")
             
-            data = {
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {
-                        "role": "developer",
-                        "content": instructions
-                    },
-                    {
-                        "role": "user",
-                        "content": challenge_text
-                    }
-                ],
-            }
-            
-            response = self.model_service.get_challenge_interpretation(data)
+            response = self.model_service.get_challenge_interpretation(challenge_text)
             message_content = response['choices'][0]['message']['content']
             parsed_message = json.loads(message_content.replace("'", '"'))
             
-            print("Interpretación del modelo:")
             interpretation = Interpretation(**parsed_message)
-            print(interpretation)
+            logger.info("Interpretación del modelo:")
+            logger.info(f"{interpretation}\n")
             
-            "Obtener el pokemón"
             pokemon : Pokemon = {};
-                
             eval_context = {}
             
             for entity in interpretation.entities:
@@ -76,54 +56,25 @@ class Application:
                     value = float(value_str.replace(",", ""))
                     eval_context.setdefault(entity.name, {})[entity.attribute] = value
             
-            # Aquí puedes realizar operaciones con los datos obtenidos
             safe_operation = to_dict_syntax(interpretation.operation)
             
-            print("👉 Evaluando operación:", safe_operation)
+            #TODO: PONERLO EN UN LOG DE TEXTO
+            logger.info("👉 Evaluando operación:", safe_operation)
             result = evaluate_operation(interpretation.operation, eval_context)
-            print(f"\n✅ Resultado final: {result}")
+            logger.info(f"Resultado de la operación: {result}")
             
-            return parsed_message
+            return result
             
         except Exception as e:
             logger.error(f"Error al procesar la solicitud: {e}")
             raise
-
-def to_dict_syntax(op_str):
-    pattern = r'([A-Za-z0-9\- ]+)\.([A-Za-z0-9_]+)'
-    
-    def replacement(match):
-        entity_name = match.group(1).strip()
-        attribute = match.group(2)
-        
-        safe_name = entity_name.replace('-', '_minus_').replace(' ', '_space_')
-        
-        return f"_context['{entity_name}']['{attribute}']"
-    
-    return re.sub(pattern, replacement, op_str)
-    
-def swapi_entity_type(entity: Entity) -> str:
-    """Determina el tipo de entidad para la API de Star Wars."""
-    planet_attributes = {"population", "diameter", "surface_water", "rotation_period", "orbital_period"}
-    character_attributes = {"height", "mass", "homeworld"}
-    
-    if entity.attribute in planet_attributes:
-        return "planets"
-    elif entity.attribute in character_attributes:
-        return "people"
-    else:
-        raise ValueError(f"No se pudo determinar el tipo de entidad SWAPI para el atributo '{entity.attribute}'")
-
-def evaluate_operation(operation, context):
-    _context = context
-    return eval(to_dict_syntax(operation), {"_context": _context}, {})
 
 def main():
     """Función principal de entrada."""
     try:
         app = Application()
         result = app.get_challenge()
-        print(json.dumps(result, indent=4, ensure_ascii=False))
+        print(f"Resultado: {result}")
 
     except Exception as e:
         logger.error(f"Error en la aplicación: {e}")

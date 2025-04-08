@@ -12,7 +12,23 @@ class ModelService:
             timeout=settings.API_TIMEOUT
         )
 
-    def get_challenge_interpretation(self, params: Optional[Dict[str, Any]] = None):
+    def get_challenge_interpretation(self, challenge_text: str):
         "Obtiene la interpretación del modelo"
-        reponse = self.client.post(settings.AI_ENDPOINT, params)
+        instructions = "Devuélveme la interpretación en formato JSON. Quiero que indiques qué entidades buscar, en qué API, entre la API de pokemon(https://pokeapi.co/) y la API de StarWars (https://swapi.dev/) y qué operaciones realizar. El formato debe ser así:\n{\n  'entities': [\n    {'name': 'Leia Organa', 'attribute': 'height', 'source': 'swapi'},\n    {'name': 'Bulbasaur', 'attribute': 'height', 'source': 'pokeapi'},\n    {'name': 'Owen Lars', 'attribute': 'height', 'source': 'swapi'},\n    {'name': 'Socorro', 'attribute': 'diameter', 'source': 'swapi'}\n  ],\n  'operation': '(Leia.height * Bulbasaur.height * Owen.height) + Socorro.diameter'\n}\nResponde solo con el JSON."
+        
+        data = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {
+                    "role": "developer",
+                    "content": instructions
+                },
+                {
+                    "role": "user",
+                    "content": challenge_text
+                }
+            ],
+        }
+        
+        reponse = self.client.post(settings.AI_ENDPOINT, data)
         return reponse
