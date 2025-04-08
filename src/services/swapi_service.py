@@ -17,7 +17,6 @@ class SwapiService:
     def get_swapi_data(self, type: str, entity: Entity):
         "Obtiene la data de la API de Star Wars, buscando por el tipo y la entidad"
         url = f"{type}/?search={entity.name}"
-        print(f"URL: {settings.SWAPI}/{url}")
         
         response = self.client.get(url)
         

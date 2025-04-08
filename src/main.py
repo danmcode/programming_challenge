@@ -12,32 +12,45 @@ class Application:
         self.challenge_service = ChallengeService()
 
     def run_offcial_test(self):
-        """Versión del test oficial"""
         start_time = time.time()
         time_limit = 180
         
         try:
-            logger.info("⏱️ Iniciando prueba oficial...")
+            logger.info("Iniciando prueba oficial...")
             challenge = self.challenge_service.get_challenge()
 
-            while time.time() - start_time < time_limit:
+            while challenge and time.time() - start_time < time_limit:
                 try:
-                    logger.info("🧩 Nuevo problema recibido")
-                    last_result = resolve_challenge(challenge)
+                    logger.info(f"Procesando problema ID: {challenge.id}")
+                    logger.info(f"Descripción: {challenge.problem}")
+                    
+                    try:
+                        # Resolver el desafío actual
+                        result = resolve_challenge(challenge)
+                        logger.info(f"Resultado calculado: {result}")
 
-                    logger.info("📤 Enviando respuesta...")
-                    challenge = self.challenge_service.send_result(last_result, challenge.id)
-
-                    if not challenge:
-                        logger.info("✅ No quedan más desafíos o se agotó el tiempo.")
+                        # Enviar resultado y obtener el siguiente desafío
+                        logger.info("Enviando respuesta...")
+                        challenge = self.challenge_service.send_result(result, challenge.id)
+                    except Exception as e:
+                        logger.error(f"❌ Error al resolver el desafío: {e}")
+                        # Obtener un nuevo desafío en caso de error
+                        challenge = self.challenge_service.get_challenge()
+                        continue
+                    
+                    if challenge:
+                        logger.info(f"Nuevo problema recibido con ID: {challenge.id}")
+                    else:
+                        logger.info("No quedan más desafíos o se agotó el tiempo.")
                         break
                 
                 except Exception as e:
-                    logger.error(f"❌ Error al resolver el desafío: {e}")
-                    continue
+                    logger.error(f"❌ Error general en el bucle de prueba: {e}")
+                    # Intentar obtener un nuevo desafío
+                    challenge = self.challenge_service.get_challenge()
 
         except Exception as e:
-            logger.error(f"❌ Error durante la prueba oficial: {e}")
+            logger.error(f"❌ Error durante la prueba oficial: {e}", exc_info=True)
             
     
 def main():

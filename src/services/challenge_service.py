@@ -20,7 +20,7 @@ class ChallengeService:
     def get_challenge(self):
         "Obtiene el desafío desde el enpoint de la API"
         
-        reponse = self.client.get(settings.TEST_ENDPOINT)
+        reponse = self.client.get(settings.PROD_ENDPOINT)
         logger.info(f"***RESPUESTA DEL ENDPONT DEL RETO***: {reponse}\n\n")
         challenge = Challenge(**reponse)
         return challenge
@@ -32,8 +32,14 @@ class ChallengeService:
             "problem_id": challenge_id,
             "answer": result
         }
+        
         logger.info(f"***DATA ENVIADA***\n: {data}\n\n")
-        response = '';
-        # response = self.client.post(settings.SOLUTION_ENDPOINT, data)
-        # logger.info(f"***RESPUESTA DEL ENDPONT DEL RESULTADO***\n: {response}\n\n")
-        return response
+        response = self.client.post(settings.SOLUTION_ENDPOINT, data)
+        logger.info(f"***RESPUESTA DEL ENDPONT DEL RESULTADO***\n: {response}\n\n")
+        
+        if response and 'next_problem' in response:
+            next_challenge = Challenge(**response['next_problem'])
+            return next_challenge
+        else:
+            logger.info("No hay más problemas disponibles")
+            return None

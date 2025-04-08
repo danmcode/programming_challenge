@@ -1,6 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from pydantic import BaseModel
+from typing import List
 
 class StarWarsPlanet(BaseModel):
     """Modelo para datos de planetas de Star Wars."""
